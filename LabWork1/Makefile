@@ -6,6 +6,6 @@ CXXFLAGS = -Wall -Wextra -Wpedantic -Werror
 
 GTEST_LIBS = -lgtest -lgtest_main -pthread 
 
-SRC = main.cpp BitmapImg.cpp test.cpp
+SRC = main.cpp BitmapImg.cpp tests.cpp
 
 OBJ = $(SRC:.cpp=.o)
