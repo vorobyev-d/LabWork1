@@ -14,7 +14,7 @@ LabWork 1
 
 class BitmapImg : public ImageProcessor
 {
-    public:
+public:
     BitmapImg();
     BitmapImg(int w, int h);
 
@@ -28,7 +28,7 @@ class BitmapImg : public ImageProcessor
     int get_width();
     int get_height();
 
-    private:
+private:
     std::vector<unsigned char> pixels;
 
     int width_;

@@ -10,8 +10,11 @@ LabWork 1
 
 BitmapImg::BitmapImg() : width_(0), height_(0), row_padding_(0) {}
 
-BitmapImg::BitmapImg(int w, int h) : width_(w), height_(h) {row_padding_ = (4 - (width_ * 3) % 4) % 4; 
-pixels.resize((width_ * 3 + row_padding_) * height_, 0);}
+BitmapImg::BitmapImg(int w, int h) : width_(w), height_(h)
+{
+    row_padding_ = (4 - (width_ * 3) % 4) % 4;
+    pixels.resize((width_ * 3 + row_padding_) * height_, 0);
+}
 
 void BitmapImg::load_from_file(const std::string& file_name)
 {
@@ -76,7 +79,7 @@ void BitmapImg::rotate_clockwise_90()
         {
             int old_index = y * (width_ * 3 + row_padding_) + x * 3;
             int new_index = (width_ - 1 - x) * (height_ * 3 + new_row_padding) + y * 3;
-            
+
             new_pixels[new_index] = pixels[old_index];
             new_pixels[new_index + 1] = pixels[old_index + 1];
             new_pixels[new_index + 2] = pixels[old_index + 2];
@@ -92,12 +95,12 @@ void BitmapImg::rotate_clockwise_90()
     info_header.image_size_ = pixels.size();
     file_header.size_ = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader) + info_header.image_size_;
 
-    
+
 }
 
 void BitmapImg::rotate_counter_clockwise_90()
 {
-    
+
     std::vector<unsigned char> new_pixels((height_ * 3 + (4 - (height_ * 3) % 4) % 4) * width_, 0);
     int new_row_padding = (4 - (height_ * 3) % 4) % 4;
 
@@ -107,7 +110,7 @@ void BitmapImg::rotate_counter_clockwise_90()
         {
             int old_index = y * (width_ * 3 + row_padding_) + x * 3;
             int new_index = x * (height_ * 3 + new_row_padding) + (height_ - 1 - y) * 3;
-            
+
             new_pixels[new_index] = pixels[old_index];
             new_pixels[new_index + 1] = pixels[old_index + 1];
             new_pixels[new_index + 2] = pixels[old_index + 2];
@@ -128,7 +131,8 @@ void BitmapImg::apply_gaussian_filter()
 {
     std::vector<unsigned char> new_pixels = pixels;
 
-    int kernel[3][3] = {
+    int kernel[3][3] =
+    {
         {1, 2, 1},
         {2, 4, 2},
         {1, 2, 1}
