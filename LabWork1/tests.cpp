@@ -3,7 +3,7 @@ Vorobyev Dmitriy | st140149@student.spbu.ru
 LabWork 1
 */
 
-#include "Bitmap.h"
+#include "BitmapImg.h"
 #include <gtest/gtest.h>
 
 TEST(BitmapImgTest, LoadAndSaveTest)
@@ -14,7 +14,7 @@ TEST(BitmapImgTest, LoadAndSaveTest)
     img.save_to_file("test_output.bmp");
 
     EXPECT_EQ(img.get_width(), 500);
-    EXPECCT_EQ(img.get_height(), 375);
+    EXPECT_EQ(img.get_height(), 375);
 }
 
 TEST(BitmapImgTest, RotateClockwise)
@@ -52,3 +52,4 @@ TEST(BitmapImgTest, ApplyGaussianFilter)
     EXPECT_EQ(img.get_width(), 500);
     EXPECT_EQ(img.get_height(), 375);
 }
+

@@ -12,14 +12,14 @@ LabWork 1
 #include <vector>
 #include <string>
 
-class BitmapImg : ImageProcessor
+class BitmapImg : public ImageProcessor
 {
     public:
     BitmapImg();
     BitmapImg(int w, int h);
 
-    void load_from_file(std::string& file_name);
-    void save_to_file(std::string& file_name);
+    void load_from_file(const std::string& file_name);
+    void save_to_file(const std::string& file_name);
 
     void rotate_clockwise_90() override;
     void rotate_counter_clockwise_90() override;

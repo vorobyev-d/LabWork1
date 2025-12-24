@@ -7,10 +7,13 @@ LabWork 1
 
 #include "BitmapImg.h"
 
+
+BitmapImg::BitmapImg() : width_(0), height_(0), row_padding_(0) {}
+
 BitmapImg::BitmapImg(int w, int h) : width_(w), height_(h) {row_padding_ = (4 - (width_ * 3) % 4) % 4; 
 pixels.resize((width_ * 3 + row_padding_) * height_, 0);}
 
-void BitmapImg::load_from_file(std::string& file_name)
+void BitmapImg::load_from_file(const std::string& file_name)
 {
     std::ifstream file(file_name, std::ios::binary);
     if (!file)
@@ -45,22 +48,26 @@ void BitmapImg::load_from_file(std::string& file_name)
     file.read(reinterpret_cast<char*>(pixels.data()), pixels.size());
 }
 
-void BitmapImg::save_to_file(std::string& file_name)
+void BitmapImg::save_to_file(const std::string& file_name)
 {
-    std::ofstream file(file_name,  std::ios::binary);
-    if (!file)
-    {
-        throw std::runtime_error("Couldnt open file for writing");
-    }
+    file_header.type_ = 0x4D42;
+    file_header.off_bits_ = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
+    info_header.image_size_ = pixels.size();
+    file_header.size_ = file_header.off_bits_ + info_header.image_size_;
 
-    file.write(reinterpret_cast<const char*>(&file_header), sizeof(file_header));
-    file.write(reinterpret_cast<const char*>(&info_header), sizeof(info_header));
-    file.write(reinterpret_cast<const char*>(pixels.data()), pixels.size());
+    std::ofstream file(file_name, std::ios::binary);
+    if (!file)
+        throw std::runtime_error("Couldnt open file for writing");
+
+    file.write(reinterpret_cast<char*>(&file_header), sizeof(file_header));
+    file.write(reinterpret_cast<char*>(&info_header), sizeof(info_header));
+    file.write(reinterpret_cast<char*>(pixels.data()), pixels.size());
 }
+
 
 void BitmapImg::rotate_clockwise_90()
 {
-    std::vector<unsigned char> new_pixels((height_ * 3 + (4 - (height_ * 3) % 4) % 4) * width_, 0);
+    std::vector<unsigned char> new_pixels((height_ * 3 + ((4 - (height_ * 3) % 4) % 4)) * width_, 0);
     int new_row_padding = (4 - (height_ * 3) % 4) % 4;
 
     for (int y = 0; y < height_; ++y)
@@ -68,7 +75,7 @@ void BitmapImg::rotate_clockwise_90()
         for (int x = 0; x < width_; ++x)
         {
             int old_index = y * (width_ * 3 + row_padding_) + x * 3;
-            int new_index = x * (height_ * 3 + new_row_padding) + (height_ - 1 - y) * 3;
+            int new_index = (width_ - 1 - x) * (height_ * 3 + new_row_padding) + y * 3;
             
             new_pixels[new_index] = pixels[old_index];
             new_pixels[new_index + 1] = pixels[old_index + 1];
@@ -84,11 +91,14 @@ void BitmapImg::rotate_clockwise_90()
     info_header.height_ = height_;
     info_header.image_size_ = pixels.size();
     file_header.size_ = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader) + info_header.image_size_;
+
+    
 }
 
 void BitmapImg::rotate_counter_clockwise_90()
 {
-    std::vector<unsigned char> new_pixels((height_ * 3 + ((4 - (height_ * 3) % 4) % 4)) * width_, 0);
+    
+    std::vector<unsigned char> new_pixels((height_ * 3 + (4 - (height_ * 3) % 4) % 4) * width_, 0);
     int new_row_padding = (4 - (height_ * 3) % 4) % 4;
 
     for (int y = 0; y < height_; ++y)
@@ -96,7 +106,7 @@ void BitmapImg::rotate_counter_clockwise_90()
         for (int x = 0; x < width_; ++x)
         {
             int old_index = y * (width_ * 3 + row_padding_) + x * 3;
-            int new_index = (width_ - 1 - x) * (height_ * 3 + new_row_padding) + y * 3;
+            int new_index = x * (height_ * 3 + new_row_padding) + (height_ - 1 - y) * 3;
             
             new_pixels[new_index] = pixels[old_index];
             new_pixels[new_index + 1] = pixels[old_index + 1];
@@ -133,10 +143,10 @@ void BitmapImg::apply_gaussian_filter()
 
             for (int ky = -1; ky <= 1; ++ky)
             {
-                int yy = std::clamp(y + ky, 0, height_ - 1);
+                int yy = std::max(0, std::min(y + ky, height_ - 1));
                 for (int kx = -1; kx <= 1; ++kx)
                 {
-                    int xx = std::clamp(x + kx, 0, width_ - 1);
+                    int xx = std::max(0, std::min(x + kx, width_ - 1));
                     int pixel_index = yy * (width_ * 3 + row_padding_) + xx * 3;
                     sum_b += pixels[pixel_index] * kernel[ky + 1][kx + 1];
                     sum_g += pixels[pixel_index + 1] * kernel[ky + 1][kx + 1];
@@ -152,3 +162,15 @@ void BitmapImg::apply_gaussian_filter()
     }
     pixels = std::move(new_pixels);
 }
+
+
+int BitmapImg::get_width()
+{
+    return width_;
+}
+
+int BitmapImg::get_height()
+{
+    return height_;
+}
+

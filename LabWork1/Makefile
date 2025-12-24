@@ -1,19 +1,23 @@
-PROJECT = lab1
 CXX = g++
 CXXFLAGS = -Wall -Wextra -Wpedantic -Werror
-GTEST_LIBS = -lgtest -lgtest_main -pthread 
-SRC = main.cpp BitmapImg.cpp tests.cpp
-OBJ = $(SRC:.cpp=.o)
+LDFLAGS = -lgtest -lgtest_main -pthread
 
-.PHONY: all clean
+SRC = main.cpp BitmapImg.cpp ImageProcessor.cpp
+TEST_SRC = tests.cpp BitmapImg.cpp ImageProcessor.cpp
 
-all: $(PROJECT)
+all: lab1 run_tests
 
-$(PROJECT): $(OBJ)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(GTEST_LIBS)
+lab1: $(SRC:.cpp=.o)
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+run_tests: $(TEST_SRC:.cpp=.o)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cpp
-	$(CXX) -c -o $@ $< $(CXXFLAGS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(PROJECT)
+	rm -f *.o lab1 run_tests
+
+test: run_tests
+	./run_tests

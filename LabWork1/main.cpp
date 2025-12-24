@@ -13,11 +13,12 @@ int main()
         std::cout << "starting processing ..."  << std::endl;
         BitmapImg img;
 
-        img.load_from_file("input.bmp");
+        img.load_from_file("test_input.bmp");
 
         img.rotate_clockwise_90();
         img.save_to_file("rotated_cw_output.bmp");
 
+        img.load_from_file("test_input.bmp");
         img.rotate_counter_clockwise_90();
         img.save_to_file("rotated_ccw_output.bmp");
 
