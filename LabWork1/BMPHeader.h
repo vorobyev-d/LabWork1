@@ -6,6 +6,8 @@ LabWork 1
 #ifndef BMP_HEADER_H
 #define BMP_HEADER_H
 
+#include <cstdint>
+
 #pragma pack(push, 1)
 
 struct BMPFileHeader
@@ -31,6 +33,13 @@ struct BMPInfoHeader
     int resolution_y_;
     unsigned int colors_;
     unsigned int important_colors_;
+};
+
+struct Pixel
+{
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
 };
 
 #pragma pack(pop)

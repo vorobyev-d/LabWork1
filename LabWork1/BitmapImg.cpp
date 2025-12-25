@@ -3,178 +3,184 @@ Vorobyev Dmitriy | st140149@student.spbu.ru
 LabWork 1
 */
 
-#include <fstream>
-
 #include "BitmapImg.h"
+#include <fstream>
+#include <stdexcept>
+#include <algorithm>
+#include <iostream>
+#include <cmath>
 
 
-BitmapImg::BitmapImg() : width_(0), height_(0), row_padding_(0) {}
 
-BitmapImg::BitmapImg(int w, int h) : width_(w), height_(h)
+BitmapImg::BitmapImg()
 {
-    row_padding_ = (4 - (width_ * 3) % 4) % 4;
-    pixels.resize((width_ * 3 + row_padding_) * height_, 0);
+    file_header = {};
+    info_header = {};
 }
 
-void BitmapImg::load_from_file(const std::string& file_name)
+BitmapImg::BitmapImg(int w, int h, const std::vector<Pixel>& p)
 {
-    std::ifstream file(file_name, std::ios::binary);
-    if (!file)
-    {
-        throw std::runtime_error("Couldnt open file for reading");
-    }
-
-    file.read(reinterpret_cast<char*>(&file_header), sizeof(file_header));
-    file.read(reinterpret_cast<char*>(&info_header), sizeof(info_header));
-
-    if (file_header.type_ != 0x4D42)
-    {
-        throw std::runtime_error("not a valid BMP file");
-    }
-
-    if (info_header.bit_count_ != 24)
-    {
-        throw std::runtime_error("not a 24 bit bmp file");
-    }
-
-    if (info_header.compression_ != 0)
-    {
-        throw std::runtime_error("compressed bmp files are not supported");
-    }
-
-    width_ = info_header.width_;
-    height_ = info_header.height_;
-    row_padding_ = (4 - (width_ * 3) % 4) % 4;
-    pixels.resize((width_ * 3 + row_padding_) * height_);
-
-    file.seekg(file_header.off_bits_, std::ios::beg);
-    file.read(reinterpret_cast<char*>(pixels.data()), pixels.size());
+    info_header.width_ = w;
+    info_header.height_ = h;
+    pixels = p;
 }
 
-void BitmapImg::save_to_file(const std::string& file_name)
+int BitmapImg::get_width() const
 {
-    file_header.type_ = 0x4D42;
-    file_header.off_bits_ = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
-    info_header.image_size_ = pixels.size();
-    file_header.size_ = file_header.off_bits_ + info_header.image_size_;
-
-    std::ofstream file(file_name, std::ios::binary);
-    if (!file)
-        throw std::runtime_error("Couldnt open file for writing");
-
-    file.write(reinterpret_cast<char*>(&file_header), sizeof(file_header));
-    file.write(reinterpret_cast<char*>(&info_header), sizeof(info_header));
-    file.write(reinterpret_cast<char*>(pixels.data()), pixels.size());
+    return info_header.width_;
 }
 
+int BitmapImg::get_height() const
+{
+    return info_header.height_;
+}
+
+int BitmapImg::get_padding(int width) const
+{
+    return (ROW_ALIGNMENT - (width * sizeof(Pixel)) % ROW_ALIGNMENT) % ROW_ALIGNMENT;
+}
+
+void BitmapImg::load_from_file(const std::string& filename)
+{
+    std::ifstream in(filename, std::ios::binary);
+    if (!in) throw std::runtime_error("File not found");
+
+    in.read(reinterpret_cast<char*>(&file_header), sizeof(file_header));
+    if (file_header.type_ != BMP_SIGNATURE) throw std::runtime_error("Not a BMP file");
+
+    in.read(reinterpret_cast<char*>(&info_header), sizeof(info_header));
+    if (info_header.bit_count_ != BITS_PER_PIXEL) throw std::runtime_error("Only 24-bit BMP supported");
+
+    int w = info_header.width_;
+    int h = std::abs(info_header.height_);
+    int padding = get_padding(w);
+
+    pixels.resize(w * h);
+
+    in.seekg(file_header.off_bits_, std::ios::beg);
+
+    for (int y = 0; y < h; ++y)
+    {
+        for (int x = 0; x < w; ++x)
+        {
+            in.read(reinterpret_cast<char*>(&pixels[y * w + x]), sizeof(Pixel));
+        }
+        in.ignore(padding);
+    }
+}
+
+void BitmapImg::save_to_file(const std::string& filename) const
+{
+    std::ofstream out(filename, std::ios::binary);
+    if (!out) throw std::runtime_error("Cannot create file");
+
+    int w = info_header.width_;
+    int h = std::abs(info_header.height_);
+    int padding = get_padding(w);
+
+    BMPFileHeader outFh = file_header;
+    BMPInfoHeader outIh = info_header;
+
+    outFh.type_ = BMP_SIGNATURE;
+    outFh.reserved1_ = 0;
+    outFh.reserved2_ = 0;
+    outFh.off_bits_ = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
+    uint32_t dataSize = (w * sizeof(Pixel) + padding) * h;
+    outFh.size_ = outFh.off_bits_ + dataSize;
+
+    outIh.image_size_ = dataSize;
+    outIh.size_ = INFO_HEADER_SIZE;
+    outIh.planes_ = 1;
+    outIh.bit_count_ = BITS_PER_PIXEL;
+    outIh.compression_ = NO_COMPRESSION;
+
+    out.write(reinterpret_cast<const char*>(&outFh), sizeof(outFh));
+    out.write(reinterpret_cast<const char*>(&outIh), sizeof(outIh));
+
+    uint8_t padByte = 0;
+    for (int y = 0; y < h; ++y)
+    {
+        for (int x = 0; x < w; ++x)
+            out.write(reinterpret_cast<const char*>(&pixels[y * w + x]), sizeof(Pixel));
+        for (int k = 0; k < padding; ++k)
+            out.write(reinterpret_cast<const char*>(&padByte), 1);
+    }
+}
 
 void BitmapImg::rotate_clockwise_90()
 {
-    std::vector<unsigned char> new_pixels((height_ * 3 + ((4 - (height_ * 3) % 4) % 4)) * width_, 0);
-    int new_row_padding = (4 - (height_ * 3) % 4) % 4;
+    int w = info_header.width_;
+    int h = info_header.height_;
+    std::vector<Pixel> newPixels(w * h);
 
-    for (int y = 0; y < height_; ++y)
-    {
-        for (int x = 0; x < width_; ++x)
-        {
-            int old_index = y * (width_ * 3 + row_padding_) + x * 3;
-            int new_index = (width_ - 1 - x) * (height_ * 3 + new_row_padding) + y * 3;
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+            newPixels[(w - 1 - x) * h + y] = pixels[y * w + x];
 
-            new_pixels[new_index] = pixels[old_index];
-            new_pixels[new_index + 1] = pixels[old_index + 1];
-            new_pixels[new_index + 2] = pixels[old_index + 2];
-        }
-    }
-
-    std::swap(width_, height_);
-    row_padding_ = new_row_padding;
-    pixels = std::move(new_pixels);
-
-    info_header.width_ = width_;
-    info_header.height_ = height_;
-    info_header.image_size_ = pixels.size();
-    file_header.size_ = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader) + info_header.image_size_;
-
-
+    pixels = newPixels;
+    std::swap(info_header.width_, info_header.height_);
 }
 
 void BitmapImg::rotate_counter_clockwise_90()
 {
+    int w = info_header.width_;
+    int h = info_header.height_;
+    std::vector<Pixel> newPixels(w * h);
 
-    std::vector<unsigned char> new_pixels((height_ * 3 + (4 - (height_ * 3) % 4) % 4) * width_, 0);
-    int new_row_padding = (4 - (height_ * 3) % 4) % 4;
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+            newPixels[x * h + (h - 1 - y)] = pixels[y * w + x];
 
-    for (int y = 0; y < height_; ++y)
-    {
-        for (int x = 0; x < width_; ++x)
-        {
-            int old_index = y * (width_ * 3 + row_padding_) + x * 3;
-            int new_index = x * (height_ * 3 + new_row_padding) + (height_ - 1 - y) * 3;
-
-            new_pixels[new_index] = pixels[old_index];
-            new_pixels[new_index + 1] = pixels[old_index + 1];
-            new_pixels[new_index + 2] = pixels[old_index + 2];
-        }
-    }
-
-    std::swap(width_, height_);
-    row_padding_ = new_row_padding;
-    pixels = std::move(new_pixels);
-
-    info_header.width_ = width_;
-    info_header.height_ = height_;
-    info_header.image_size_ = pixels.size();
-    file_header.size_ = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader) + info_header.image_size_;
+    pixels = newPixels;
+    std::swap(info_header.width_, info_header.height_);
 }
 
 void BitmapImg::apply_gaussian_filter()
 {
-    std::vector<unsigned char> new_pixels = pixels;
+    int w = info_header.width_;
+    int h = info_header.height_;
+    std::vector<Pixel> result = pixels;
 
-    int kernel[3][3] =
+    const double kernel[3][3] =
     {
-        {1, 2, 1},
-        {2, 4, 2},
-        {1, 2, 1}
+        {0.075, 0.124, 0.075},
+        {0.124, 0.204, 0.124},
+        {0.075, 0.124, 0.075}
     };
-    int kernel_sum = 16;
 
-    for (int y = 0; y < height_; ++y)
+    for (int y = 0; y < h; ++y)
     {
-        for (int x = 0; x < width_; ++x)
+        for (int x = 0; x < w; ++x)
         {
-            int sum_r = 0, sum_g = 0, sum_b = 0;
+            double r = 0, g = 0, b = 0;
 
             for (int ky = -1; ky <= 1; ++ky)
             {
-                int yy = std::max(0, std::min(y + ky, height_ - 1));
                 for (int kx = -1; kx <= 1; ++kx)
                 {
-                    int xx = std::max(0, std::min(x + kx, width_ - 1));
-                    int pixel_index = yy * (width_ * 3 + row_padding_) + xx * 3;
-                    sum_b += pixels[pixel_index] * kernel[ky + 1][kx + 1];
-                    sum_g += pixels[pixel_index + 1] * kernel[ky + 1][kx + 1];
-                    sum_r += pixels[pixel_index + 2] * kernel[ky + 1][kx + 1];
+                    int py = std::clamp(y + ky, 0, h - 1);
+                    int px = std::clamp(x + kx, 0, w - 1);
+
+                    Pixel p = pixels[py * w + px];
+                    double kVal = kernel[ky + 1][kx + 1];
+
+                    b += p.b * kVal;
+                    g += p.g * kVal;
+                    r += p.r * kVal;
                 }
             }
 
-            int new_index = y * (width_ * 3 + row_padding_) + x * 3;
-            new_pixels[new_index] = sum_b / kernel_sum;
-            new_pixels[new_index + 1] = sum_g / kernel_sum;
-            new_pixels[new_index + 2] = sum_r / kernel_sum;
+            result[y * w + x].b = static_cast<uint8_t>(std::clamp(b, 0.0, 255.0));
+            result[y * w + x].g = static_cast<uint8_t>(std::clamp(g, 0.0, 255.0));
+            result[y * w + x].r = static_cast<uint8_t>(std::clamp(r, 0.0, 255.0));
         }
     }
-    pixels = std::move(new_pixels);
+    pixels = result;
 }
 
-
-int BitmapImg::get_width()
+Pixel BitmapImg::get_pixel(int x, int y) const
 {
-    return width_;
+    if (x < 0 || x >= info_header.width_ || y < 0 || y >= info_header.height_)
+        return {0,0,0};
+    return pixels[y * info_header.width_ + x];
 }
-
-int BitmapImg::get_height()
-{
-    return height_;
-}
-

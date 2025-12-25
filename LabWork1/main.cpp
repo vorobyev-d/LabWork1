@@ -10,7 +10,7 @@ int main()
 {
     try
     {
-        std::cout << "starting processing ..."  << std::endl;
+        std::cout << "Starting processing ..." << std::endl;
         BitmapImg img;
 
         img.load_from_file("test_input.bmp");
@@ -25,7 +25,7 @@ int main()
         img.apply_gaussian_filter();
         img.save_to_file("gaussian_filtered_output.bmp");
 
-        std::cout << "processing successfully ended" << std::endl;
+        std::cout << "Processing successfully ended" << std::endl;
     }
     catch (const std::exception& e)
     {

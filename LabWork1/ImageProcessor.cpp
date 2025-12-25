@@ -4,5 +4,4 @@ LabWork 1
 */
 
 #include "ImageProcessor.h"
-
 ImageProcessor::~ImageProcessor() = default;
