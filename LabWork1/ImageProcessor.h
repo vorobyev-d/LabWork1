@@ -21,4 +21,4 @@ public:
     virtual ~ImageProcessor();
 };
 
-#endif 
+#endif

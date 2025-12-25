@@ -13,7 +13,7 @@ TEST(BitmapImgTest, LoadAndSaveTest)
     img.load_from_file("test_input.bmp");
     img.save_to_file("test_output.bmp");
 
-    EXPECT_EQ(img.get_width(), 1000); 
+    EXPECT_EQ(img.get_width(), 1000);
     EXPECT_EQ(img.get_height(), 667);
 }
 
@@ -25,7 +25,7 @@ TEST(BitmapImgTest, RotateClockwise)
     img.rotate_clockwise_90();
     img.save_to_file("test_rotated_cw.bmp");
 
-    EXPECT_EQ(img.get_width(), 667);  
+    EXPECT_EQ(img.get_width(), 667);
     EXPECT_EQ(img.get_height(), 1000);
 }
 

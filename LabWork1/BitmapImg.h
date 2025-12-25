@@ -43,4 +43,4 @@ private:
     int get_padding(int width) const;
 };
 
-#endif 
+#endif
